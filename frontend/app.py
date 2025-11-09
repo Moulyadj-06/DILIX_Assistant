@@ -18,13 +18,13 @@ if "messages" not in st.session_state:
 # -----------------------------
 # Sidebar file upload
 # -----------------------------
-st.sidebar.header("📂 Upload Documents")
+st.sidebar.header(" Upload Documents")
 uploaded_file = st.sidebar.file_uploader("Upload a PDF or DOCX file", type=["pdf", "docx"])
 if uploaded_file:
     file_path = save_uploaded_file(uploaded_file)
     text = extract_text_from_pdf(file_path) if uploaded_file.name.endswith(".pdf") else extract_text_from_docx(file_path)
     add_to_vector_store(file_path)
-    st.sidebar.success(f"✅ '{uploaded_file.name}' added to DILIX memory!")
+    st.sidebar.success(f" '{uploaded_file.name}' added to DILIX memory!")
 
 # -----------------------------
 # CSS Styling
