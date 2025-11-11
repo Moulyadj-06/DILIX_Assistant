@@ -77,7 +77,7 @@ def add_to_vector_store(file_path):
             "metadata": {
                 "source": os.path.basename(file_path),
                 "question": qa["question"],
-                "answer": qa["answer"]  
+                "answer": qa["answer"]  # store full answer
             }
         }]
 
