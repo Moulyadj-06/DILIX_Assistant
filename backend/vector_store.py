@@ -23,7 +23,7 @@ pc = Pinecone(api_key=PINECONE_API_KEY)
 # -----------------------------
 existing_indexes = [idx["name"] for idx in pc.list_indexes()]
 if PINECONE_INDEX_NAME not in existing_indexes:
-    print(f"🆕 Creating Pinecone index: {PINECONE_INDEX_NAME}")
+    print(f" Creating Pinecone index: {PINECONE_INDEX_NAME}")
     pc.create_index(
         name=PINECONE_INDEX_NAME,
         dimension=384,  # Must match embedding size
@@ -31,13 +31,13 @@ if PINECONE_INDEX_NAME not in existing_indexes:
         spec=ServerlessSpec(cloud="aws", region="us-east-1")
     )
 else:
-    print(f"✅ Index already exists: {PINECONE_INDEX_NAME}")
+    print(f" Index already exists: {PINECONE_INDEX_NAME}")
 
 # -----------------------------
 # Connect to the index
 # -----------------------------
 index = pc.Index(PINECONE_INDEX_NAME)
-print(f"✅ Connected to Pinecone index: {PINECONE_INDEX_NAME}")
+print(f" Connected to Pinecone index: {PINECONE_INDEX_NAME}")
 
 # -----------------------------
 # Initialize embedding model
@@ -77,12 +77,12 @@ def add_to_vector_store(file_path):
             "metadata": {
                 "source": os.path.basename(file_path),
                 "question": qa["question"],
-                "answer": qa["answer"]  # ✅ store full answer
+                "answer": qa["answer"]  # store full answer
             }
         }]
 
         index.upsert(vectors=vector_data)
-    print(f"✅ Added all Q&A pairs from {file_path} to Pinecone")
+    print(f" Added all Q&A pairs from {file_path} to Pinecone")
 
 
 def query_vector_store(question, top_k=3):
