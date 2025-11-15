@@ -1,15 +1,29 @@
 # DILIX — Diligent Intelligent Assistant
 
-DILIX is a **personal AI assistant** designed to help users interact with documents and answer questions using artificial intelligence. It provides a conversational interface, retrieves relevant knowledge from uploaded documents, and stores information in a vector database for context-aware responses. Think of it as a **Jarvis-like assistant for documents and knowledge management**.
+DILIX is a personal AI assistant designed to help users interact with documents, organize files, and answer questions using artificial intelligence. It provides a natural conversational interface, retrieves relevant knowledge from uploaded documents, and stores information in a vector database for intelligent, context-aware responses. Along with document understanding, DILIX includes an automated file management system that categorizes, renames, and organizes files effortlessly.
+
+Think of it as a Jarvis-like assistant for documents, knowledge management, and smart file organization.**.
 
 ---
 
 ## Features
 
-- Conversational AI interface that responds intelligently to user queries
-- Upload PDF and DOCX documents for context-aware answers
-- Knowledge retrieval using a **vector database (Pinecone)** and embeddings
-- Persistent chat history for seamless conversation
+- Conversational Interface: Responds naturally to queries and provides context-aware answers.
+- Document Processing: Extracts text, summaries, and insights from PDFs, Word files, text documents, and images.
+- Vector Database Integration: Stores document embeddings for fast and accurate semantic retrieval.
+- Knowledge Retrieval: Answers questions by finding relevant information across all uploaded documents.
+- Intelligent File Organizer: Automatically manages and structures your files using AI.
+
+---
+
+## Workflow
+
+- User uploads file
+- DILIX extracts text + metadata
+- Embeddings generated and stored
+- File organized into correct folder
+- User asks a question
+- Relevant chunks retrieved + answer generated
 
 ---
 
