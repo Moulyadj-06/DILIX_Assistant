@@ -8,6 +8,7 @@ from backend.file_manager import BASE_DIR
 from datetime import datetime
 import os
 import base64
+<<<<<<< HEAD
 import openai
 
 if "pending_report" not in st.session_state:
@@ -22,6 +23,8 @@ def generate_image_from_ai(prompt):
     img_base64 = result.data[0].b64_json
     return base64.b64decode(img_base64)
 
+=======
+>>>>>>> 935cae6e245159284452f345f0632e709d230d70
 
 st.set_page_config(page_title="🧠 DILIX", layout="wide")
 
@@ -106,6 +109,7 @@ if uploaded_file:
     text = extract_text_from_pdf(file_path) if uploaded_file.name.endswith(".pdf") else extract_text_from_docx(file_path)
     add_to_vector_store(file_path)
     st.sidebar.success(f" '{uploaded_file.name}' added to DILIX memory!")
+<<<<<<< HEAD
 
 def sidebar_file_viewer():
     st.sidebar.title("📁 File Organizer")
@@ -139,6 +143,8 @@ def sidebar_file_viewer():
                     file_name=file
                 )
 sidebar_file_viewer()
+=======
+>>>>>>> 935cae6e245159284452f345f0632e709d230d70
 
 # -----------------------------
 # CSS Styling
@@ -463,9 +469,3 @@ if send_button and user_input.strip():
         "time": datetime.now().strftime("%H:%M")
     })
     render_chat()
-
-
-
-
-
-
