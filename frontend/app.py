@@ -3,12 +3,27 @@ from backend.llm_engine import get_llm_response
 from backend.memory_manager import save_conversation
 from backend.document_ingestor import extract_text_from_pdf, extract_text_from_docx, save_uploaded_file
 from backend.vector_store import add_to_vector_store, query_vector_store
+from backend.file_manager import organize_folder, save_text_report, save_word, save_image, save_pdf
+from backend.file_manager import BASE_DIR
 from datetime import datetime
 import os
 import base64
+import openai
+
+if "pending_report" not in st.session_state:
+    st.session_state.pending_report = None
+
+def generate_image_from_ai(prompt):
+    result = openai.images.generate(
+        model="gpt-image-1",
+        prompt=prompt,
+        size="512x512"
+    )
+    img_base64 = result.data[0].b64_json
+    return base64.b64decode(img_base64)
+
 
 st.set_page_config(page_title="🧠 DILIX", layout="wide")
-# st.title("🤖 DILIX — Diligent Intelligent Assistant")
 
 st.markdown("""
     <style>
@@ -92,6 +107,39 @@ if uploaded_file:
     add_to_vector_store(file_path)
     st.sidebar.success(f" '{uploaded_file.name}' added to DILIX memory!")
 
+def sidebar_file_viewer():
+    st.sidebar.title("📁 File Organizer")
+
+    # Use the EXACT same base directory the backend uses
+    base = BASE_DIR
+
+    categories = {
+        "Reports": "reports",
+        "Documents": "documents",
+        "Images": "images",
+        "PDFs": "pdfs",
+    }
+
+    for label, folder in categories.items():
+        st.sidebar.subheader(label)
+        folder_path = os.path.join(base, folder)
+
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path, exist_ok=True)
+
+        files = os.listdir(folder_path)
+        if not files:
+            st.sidebar.caption("No files yet.")
+        else:
+            for file in files:
+                filepath = os.path.join(folder_path, file)
+                st.sidebar.download_button(
+                    label=f"⬇ {file}",
+                    data=open(filepath, "rb").read(),
+                    file_name=file
+                )
+sidebar_file_viewer()
+
 # -----------------------------
 # CSS Styling
 # -----------------------------
@@ -145,7 +193,7 @@ st.markdown("""
     color: #fff;
     align-self: flex-end;
     border-top-right-radius: 0;
-    margin-left: auto;       /* ✅ push to far right */
+    margin-left: auto;       
     border-bottom-right-radius: 5px;
 }
 .bot {
@@ -153,7 +201,7 @@ st.markdown("""
     color: #fff;
     align-self: flex-start;
     border-top-left-radius: 0;
-    margin-right: auto;      /* ✅ push to far left */
+    margin-right: auto;      
     border-bottom-left-radius: 5px;
     backdrop-filter: blur(8px);
 }
@@ -242,6 +290,133 @@ with st.container():
 # Process user input
 # -----------------------------
 if send_button and user_input.strip():
+    st.session_state.messages.append({
+        "sender": "user",
+        "text": user_input,
+        "time": datetime.now().strftime("%H:%M")
+    })
+    user_lower = user_input.lower()
+    # ---------------------------------------
+    # Feature: File / Folder Organizer
+    # ---------------------------------------
+    if any(word in user_input.lower() for word in ["organize", "clean folder", "sort files"]):
+        downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
+        response = organize_folder(downloads_folder)
+
+        # Save & show
+        st.session_state.messages.append({
+            "sender": "user",
+            "text": user_input,
+            "time": datetime.now().strftime("%H:%M")
+        })
+        st.session_state.messages.append({
+            "sender": "bot",
+            "text": response,
+            "time": datetime.now().strftime("%H:%M")
+        })
+        render_chat()
+        st.stop()
+
+    # ---------------------------------------
+    # Feature: Generate and Save a Report
+    # ---------------------------------------
+    if "generate a report" in user_input.lower():
+        topic = user_input.replace("generate a report on", "").strip()
+        if topic == "":
+            topic = "General Topic"
+
+        report_prompt = f"Generate a detailed, structured report on: {topic}."
+        report_text = get_llm_response(report_prompt)
+
+        st.session_state.pending_report = report_text
+
+        st.session_state.messages.append({
+            "sender": "bot",
+            "text": f" **Report Generated:**\n\n{report_text}\n\nWould you like to save this report?\nChoose: **TXT**, **WORD**, **PDF**, or **NO**.",
+            "time": datetime.now().strftime("%H:%M")
+        })
+
+        render_chat()
+        st.stop()
+
+    if st.session_state.pending_report:
+
+        save_choice = user_input.lower().strip()
+
+        if save_choice == "txt":
+            path = save_text_report(st.session_state.pending_report)
+            st.session_state.messages.append({
+                "sender": "bot",
+                "text": f" Report saved as TXT.\n Location: {path}",
+                "time": datetime.now().strftime("%H:%M")
+            })
+            st.session_state.pending_report = None
+            render_chat()
+            st.stop()
+
+        elif save_choice == "word":
+            path = save_word(st.session_state.pending_report)
+            st.session_state.messages.append({
+                "sender": "bot",
+                "text": f" Report saved as Word.\n Location: {path}",
+                "time": datetime.now().strftime("%H:%M")
+            })
+            st.session_state.pending_report = None
+            render_chat()
+            st.stop()
+
+        elif save_choice == "pdf":
+            path = save_pdf(st.session_state.pending_report)
+            st.session_state.messages.append({
+                "sender": "bot",
+                "text": f" Report saved as PDF.\n Location: {path}",
+                "time": datetime.now().strftime("%H:%M")
+            })
+            st.session_state.pending_report = None
+            render_chat()
+            st.stop()
+
+        elif save_choice == "no":
+            st.session_state.messages.append({
+                "sender": "bot",
+                "text": " Report discarded.",
+                "time": datetime.now().strftime("%H:%M")
+            })
+            st.session_state.pending_report = None
+            render_chat()
+            st.stop()
+
+    # ---------------------------------------
+    # Feature: Save Output to Word Document
+    # ---------------------------------------
+    if "save to word" in user_input.lower() or "create word file" in user_input.lower():
+        file_path = save_word(response)
+
+        st.session_state.messages.append({
+            "sender": "bot",
+            "text": f" Word file saved:\n{file_path}",
+            "time": datetime.now().strftime("%H:%M")
+        })
+        render_chat()
+        st.stop()
+
+    # ---------------------------------------
+    # Feature: Generate and Save Image
+    # ---------------------------------------
+    if "generate image" in user_input.lower():
+        # You must define generate_image_from_ai() separately
+        prompt = user_input.replace("generate image", "").strip()
+        img_bytes = generate_image_from_ai(prompt)
+        file_path = save_image(img_bytes)
+
+        st.session_state.messages.append({
+            "sender": "bot",
+            "text": f"🖼 Image saved at:\n{file_path}",
+            "time": datetime.now().strftime("%H:%M")
+        })
+        render_chat()
+        st.stop()
+
     # -----------------------------
     # Check if user is asking about the assistant itself
     # -----------------------------
@@ -254,10 +429,20 @@ if send_button and user_input.strip():
         # -----------------------------
         system_prompt = "You are DILIX, an AI assistant. Be helpful and polite."
         context_chunks = query_vector_store(user_input, top_k=5)
-        context = "\n".join([chunk['answer'] for chunk in context_chunks if chunk.get('answer')]) \
-            if context_chunks else "No relevant context found."
-        prompt = f"{system_prompt}\n\nUse the below context to answer the user's question.\nContext:\n{context}\n\nQuestion: {user_input}\nAnswer:"
-        response = get_llm_response(prompt).strip()
+        context = "\n".join([c["answer"] for c in context_chunks]) if context_chunks else ""
+
+        final_prompt = f"{system_prompt}\n\nContext:\n{context}\n\nUser: {user_input}\nAnswer:"
+
+        llm_reply = get_llm_response(final_prompt)
+
+        st.session_state.messages.append({
+            "sender": "bot",
+            "text": llm_reply,
+            "time": datetime.now().strftime("%H:%M")
+        })
+
+        save_conversation(user_input, llm_reply)
+        render_chat()
 
     # -----------------------------
     # Save conversation
