@@ -290,176 +290,129 @@ with st.container():
 # Process user input
 # -----------------------------
 if send_button and user_input.strip():
+    # 1️⃣ Append user message
     st.session_state.messages.append({
         "sender": "user",
         "text": user_input,
         "time": datetime.now().strftime("%H:%M")
     })
-    user_lower = user_input.lower()
-    # ---------------------------------------
-    # Feature: File / Folder Organizer
-    # ---------------------------------------
-    if any(word in user_input.lower() for word in ["organize", "clean folder", "sort files"]):
+
+    # 2️⃣ Check special commands first
+    lower_input = user_input.lower()
+
+    # -----------------------------
+    # About DILIX
+    # -----------------------------
+    if any(word in lower_input for word in ["who are you", "about yourself", "yourself"]):
+        bot_reply = (
+            "I am **DILIX — Diligent Intelligent Assistant** 🤖. "
+            "I help users with document analysis, intelligent question answering, "
+            "task automation, and decision support. "
+            "I am designed to work with uploaded files, real-time queries, and AI-driven insights."
+        )
+        st.session_state.messages.append({
+            "sender": "bot",
+            "text": bot_reply,
+            "time": datetime.now().strftime("%H:%M")
+        })
+        save_conversation(user_input, bot_reply)
+        render_chat()
+        st.stop()
+
+    # -----------------------------
+    # File/folder organization
+    # -----------------------------
+    elif any(word in lower_input for word in ["organize", "clean folder", "sort files"]):
         downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
-        response = organize_folder(downloads_folder)
-
-        # Save & show
-        st.session_state.messages.append({
-            "sender": "user",
-            "text": user_input,
-            "time": datetime.now().strftime("%H:%M")
-        })
+        bot_reply = organize_folder(downloads_folder)
         st.session_state.messages.append({
             "sender": "bot",
-            "text": response,
+            "text": bot_reply,
             "time": datetime.now().strftime("%H:%M")
         })
         render_chat()
         st.stop()
 
-    # ---------------------------------------
-    # Feature: Generate and Save a Report
-    # ---------------------------------------
-    if "generate a report" in user_input.lower():
-        topic = user_input.replace("generate a report on", "").strip()
-        if topic == "":
-            topic = "General Topic"
-
+    # -----------------------------
+    # Generate a report
+    # -----------------------------
+    elif "generate a report" in lower_input:
+        topic = user_input.replace("generate a report on", "").strip() or "General Topic"
         report_prompt = f"Generate a detailed, structured report on: {topic}."
-        report_text = get_llm_response(report_prompt)
-
-        st.session_state.pending_report = report_text
+        st.session_state.pending_report = get_llm_response(report_prompt)
 
         st.session_state.messages.append({
             "sender": "bot",
-            "text": f" **Report Generated:**\n\n{report_text}\n\nWould you like to save this report?\nChoose: **TXT**, **WORD**, **PDF**, or **NO**.",
-            "time": datetime.now().strftime("%H:%M")
-        })
-
-        render_chat()
-        st.stop()
-
-    if st.session_state.pending_report:
-
-        save_choice = user_input.lower().strip()
-
-        if save_choice == "txt":
-            path = save_text_report(st.session_state.pending_report)
-            st.session_state.messages.append({
-                "sender": "bot",
-                "text": f" Report saved as TXT.\n Location: {path}",
-                "time": datetime.now().strftime("%H:%M")
-            })
-            st.session_state.pending_report = None
-            render_chat()
-            st.stop()
-
-        elif save_choice == "word":
-            path = save_word(st.session_state.pending_report)
-            st.session_state.messages.append({
-                "sender": "bot",
-                "text": f" Report saved as Word.\n Location: {path}",
-                "time": datetime.now().strftime("%H:%M")
-            })
-            st.session_state.pending_report = None
-            render_chat()
-            st.stop()
-
-        elif save_choice == "pdf":
-            path = save_pdf(st.session_state.pending_report)
-            st.session_state.messages.append({
-                "sender": "bot",
-                "text": f" Report saved as PDF.\n Location: {path}",
-                "time": datetime.now().strftime("%H:%M")
-            })
-            st.session_state.pending_report = None
-            render_chat()
-            st.stop()
-
-        elif save_choice == "no":
-            st.session_state.messages.append({
-                "sender": "bot",
-                "text": " Report discarded.",
-                "time": datetime.now().strftime("%H:%M")
-            })
-            st.session_state.pending_report = None
-            render_chat()
-            st.stop()
-
-    # ---------------------------------------
-    # Feature: Save Output to Word Document
-    # ---------------------------------------
-    if "save to word" in user_input.lower() or "create word file" in user_input.lower():
-        file_path = save_word(response)
-
-        st.session_state.messages.append({
-            "sender": "bot",
-            "text": f" Word file saved:\n{file_path}",
+            "text": f"**Report Generated:**\n\n{st.session_state.pending_report}\n\nWould you like to save this report?\nChoose: **TXT**, **WORD**, **PDF**, or **NO**.",
             "time": datetime.now().strftime("%H:%M")
         })
         render_chat()
         st.stop()
 
-    # ---------------------------------------
-    # Feature: Generate and Save Image
-    # ---------------------------------------
-    if "generate image" in user_input.lower():
-        # You must define generate_image_from_ai() separately
+    # -----------------------------
+    # Handle pending report save
+    # -----------------------------
+    elif st.session_state.pending_report:
+        save_choice = lower_input.strip()
+        if save_choice in ["txt", "word", "pdf", "no"]:
+            if save_choice == "txt":
+                path = save_text_report(st.session_state.pending_report)
+                bot_reply = f"Report saved as TXT.\nLocation: {path}"
+            elif save_choice == "word":
+                path = save_word(st.session_state.pending_report)
+                bot_reply = f"Report saved as Word.\nLocation: {path}"
+            elif save_choice == "pdf":
+                path = save_pdf(st.session_state.pending_report)
+                bot_reply = f"Report saved as PDF.\nLocation: {path}"
+            else:
+                bot_reply = "Report discarded."
+
+            st.session_state.messages.append({
+                "sender": "bot",
+                "text": bot_reply,
+                "time": datetime.now().strftime("%H:%M")
+            })
+            st.session_state.pending_report = None
+            render_chat()
+            st.stop()
+
+    # -----------------------------
+    # Generate image
+    # -----------------------------
+    elif "generate image" in lower_input:
         prompt = user_input.replace("generate image", "").strip()
         img_bytes = generate_image_from_ai(prompt)
         file_path = save_image(img_bytes)
-
+        bot_reply = f"🖼 Image saved at:\n{file_path}"
         st.session_state.messages.append({
             "sender": "bot",
-            "text": f"🖼 Image saved at:\n{file_path}",
+            "text": bot_reply,
             "time": datetime.now().strftime("%H:%M")
         })
         render_chat()
         st.stop()
 
     # -----------------------------
-    # Check if user is asking about the assistant itself
+    # Normal LLM response (RAG + AI)
     # -----------------------------
-    if any(word in user_input.lower() for word in ["who are you", "about yourself", "yourself"]):
-        response = "I am DILIX, Diligent intelligent AI assistant. I can help you with documents, answer questions, " \
-                   "and provide insights. I exist entirely in the digital space and am here to assist you."
     else:
-        # -----------------------------
-        # Normal vector store + LLM response
-        # -----------------------------
-        system_prompt = "You are DILIX, an AI assistant. Be helpful and polite."
         context_chunks = query_vector_store(user_input, top_k=5)
-        context = "\n".join([c["answer"] for c in context_chunks]) if context_chunks else ""
+        context = "\n".join([c["answer"] for c in context_chunks if c.get("answer")]) if context_chunks else ""
+        final_prompt = f"""
+You are DILIX, a helpful AI assistant.
+Answer the user's question clearly, concisely, and politely.
+Do NOT repeat yourself or hallucinate. Only introduce yourself if explicitly asked.
+Context: {context}
 
-        final_prompt = f"{system_prompt}\n\nContext:\n{context}\n\nUser: {user_input}\nAnswer:"
-
-        llm_reply = get_llm_response(final_prompt)
+User: {user_input}
+Answer:
+"""
+        bot_reply = get_llm_response(final_prompt)
 
         st.session_state.messages.append({
             "sender": "bot",
-            "text": llm_reply,
+            "text": bot_reply,
             "time": datetime.now().strftime("%H:%M")
         })
-
-        save_conversation(user_input, llm_reply)
+        save_conversation(user_input, bot_reply)
         render_chat()
-
-    # -----------------------------
-    # Save conversation
-    # -----------------------------
-    save_conversation(user_input, response)
-
-    # -----------------------------
-    # Append messages and re-render chat
-    # -----------------------------
-    st.session_state.messages.append({
-        "sender": "user",
-        "text": user_input,
-        "time": datetime.now().strftime("%H:%M")
-    })
-    st.session_state.messages.append({
-        "sender": "bot",
-        "text": response,
-        "time": datetime.now().strftime("%H:%M")
-    })
-    render_chat()
